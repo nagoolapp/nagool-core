@@ -1,0 +1,1 @@
+# nagool-core
