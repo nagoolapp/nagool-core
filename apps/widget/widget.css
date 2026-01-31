@@ -1,0 +1,45 @@
+/* Nagool Widget STYLES */
+
+#Nagool_root{
+  position:fixed;
+  z-index:999999;
+  bottom:20px;
+  right:20px;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+}
+
+.Nagool_floatBtn{
+  width:56px;
+  height:56px;
+  border-radius:999px;
+  border:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 8px 30px rgba(0,0,0,.25);
+  background:#000;
+  color:#fff;
+  font-size:24px;
+}
+
+.â€šNagool_panel{
+  position:absolute;
+  bottom:70px;
+  right:0;
+  width:320px;
+  height:400px;
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 12px 40px rgba(0,0,0,.25);
+  overflow:hidden;
+  display:none;
+}
+
+.Nagool_panel.open{
+  display:block;
+}
+
+.Nagool_header{Bˆ˜XÚÙÜ›İ[™ˆÌÂˆÛÛÜˆÙ™™ÂˆY[™ÎŒLLœÂˆ›Û]ÙZYÚŒÂˆ\Ü^N™›^Âˆ[YÛ‹Z][\Î˜Ù[\Âˆ\İYKXÛÛ[œÜXÙKX™]ÙY[ÂŸB‚‹“˜YÛÛÛÚXY\ˆ]ÛÂˆ˜XÚÙÜ›İ[™˜[œÜ\™[Âˆ›Ü™\››Û™NÂˆÛÛÜˆÙ™™Âˆ›Û\Ú^™NŒNÂˆİ\œÛÜœÚ[\ÂŸB‚‹“˜YÛÛÛØ›Ù^ÂˆY[™ÎŒLœÂˆ›Û\Ú^™NŒMÂˆÛÛÜˆÌLLNÂŸB‚‹¸ &“˜YÛÛÛØ˜YÙ^Âˆ\Ü^Nš[›[™KX›ØÚÎÂˆY[™ÎŒœÂˆ›Ü™\‹\˜Y]\ÎNN\Âˆ˜XÚÙÜ›İ[™ˆÙYYNÂˆ›Û\Ú^™NŒLœÂˆX\™Ú[‹]ÜÂŸB‚‹“˜YÛÛÛÜİX^ÂˆÛÛÜˆÍMMNÂˆ›Û\Ú^™NŒLœÂˆX\™Ú[‹]ÜœÂˆ[™KZZYÚŒKÂŸB‚YYXH
+X^]ÚY
+^ÂˆÓ˜YÛÛÛÜ›ÛİÈšYÚŒLœÈ›İÛNŒLœÈBˆ“˜YÛÛÛÜ[™[ÈÚYŒLÈZYÚŒÎÈBŸB
