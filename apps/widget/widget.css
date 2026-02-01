@@ -1,45 +1,219 @@
-/* Nagool Widget STYLES */
+:root{
+  --nagool-primary:#fc0a7a;
+  --nagool-bg:#0b0b0b;
+  --nagool-text:#ffffff;
+  --nagool-radius:16px;
+  --nagool-card:#111111;
+  --nagool-muted:rgba(255,255,255,.75);
+  --nagool-border:rgba(255,255,255,.12);
+}
 
 #Nagool_root{
   position:fixed;
+  inset:auto 18px 18px auto;
   z-index:999999;
-  bottom:20px;
-  right:20px;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--nagool-text);
+}
+
+#Nagool_root[dir="rtl"]{
+  inset:auto auto 18px 18px;
 }
 
 .Nagool_floatBtn{
-  width:56px;
-  height:56px;
+  width:56px;height:56px;
   border-radius:999px;
-  border:none;
+  border:0;
   cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  box-shadow:0 8px 30px rgba(0,0,0,.25);
-  background:#000;
+  background: var(--nagool-primary);
   color:#fff;
-  font-size:24px;
+  font-size:22px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.25);
 }
 
-.â€šNagool_panel{
+.Nagool_panel{
   position:absolute;
-  bottom:70px;
   right:0;
-  width:320px;
-  height:400px;
-  background:#fff;
-  border-radius:16px;
-  box-shadow:0 12px 40px rgba(0,0,0,.25);
+  bottom:72px;
+  width: 340px;
+  max-width: calc(100vw - 36px);
+  background: var(--nagool-bg);
+  border:1px solid var(--nagool-border);
+  border-radius: var(--nagool-radius);
   overflow:hidden;
-  display:none;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  transform: translateY(12px);
+  opacity:0;
+  pointer-events:none;
+  transition: .18s ease;
+}
+
+#Nagool_root[dir="rtl"] .Nagool_panel{
+  right:auto;
+  left:0;
 }
 
 .Nagool_panel.open{
-  display:block;
+  transform: translateY(0);
+  opacity:1;
+  pointer-events:auto;
 }
 
-.Nagool_header{Bˆ˜XÚÙÜ›İ[™ˆÌÂˆÛÛÜˆÙ™™ÂˆY[™ÎŒLLœÂˆ›Û]ÙZYÚŒÂˆ\Ü^N™›^Âˆ[YÛ‹Z][\Î˜Ù[\Âˆ\İYKXÛÛ[œÜXÙKX™]ÙY[ÂŸB‚‹“˜YÛÛÛÚXY\ˆ]ÛÂˆ˜XÚÙÜ›İ[™˜[œÜ\™[Âˆ›Ü™\››Û™NÂˆÛÛÜˆÙ™™Âˆ›Û\Ú^™NŒNÂˆİ\œÛÜœÚ[\ÂŸB‚‹“˜YÛÛÛØ›Ù^ÂˆY[™ÎŒLœÂˆ›Û\Ú^™NŒMÂˆÛÛÜˆÌLLNÂŸB‚‹¸ &“˜YÛÛÛØ˜YÙ^Âˆ\Ü^Nš[›[™KX›ØÚÎÂˆY[™ÎŒœÂˆ›Ü™\‹\˜Y]\ÎNN\Âˆ˜XÚÙÜ›İ[™ˆÙYYNÂˆ›Û\Ú^™NŒLœÂˆX\™Ú[‹]ÜÂŸB‚‹“˜YÛÛÛÜİX^ÂˆÛÛÜˆÍMMNÂˆ›Û\Ú^™NŒLœÂˆX\™Ú[‹]ÜœÂˆ[™KZZYÚŒKÂŸB‚YYXH
-X^]ÚY
-^ÂˆÓ˜YÛÛÛÜ›ÛİÈšYÚŒLœÈ›İÛNŒLœÈBˆ“˜YÛÛÛÜ[™[ÈÚYŒLÈZYÚŒÎÈBŸB
+.Nagool_header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));
+  border-bottom:1px solid var(--nagool-border);
+}
+
+.Nagool_headerLeft{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+#Nagool_logo{
+  width:28px;height:28px;
+  border-radius:8px;
+  object-fit:cover;
+  display:none;
+}
+
+#Nagool_title{
+  font-weight:700;
+  letter-spacing:.2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width: 220px;
+}
+
+.Nagool_header button{
+  width:34px;height:34px;
+  border-radius:10px;
+  border:1px solid var(--nagool-border);
+  background: transparent;
+  color: var(--nagool-text);
+  cursor:pointer;
+}
+
+.Nagool_body{
+  padding:12px 12px 14px 12px;
+}
+
+.Nagool_subtext{
+  font-size:12.5px;
+  color: var(--nagool-muted);
+  line-height:1.35;
+}
+
+.Nagool_badge{
+  margin-top:10px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:12px;
+  color: var(--nagool-text);
+  padding:8px 10px;
+  border-radius: 999px;
+  border:1px solid var(--nagool-border);
+  background: rgba(255,255,255,.04);
+}
+
+#Nagool_formWrap input,
+#Nagool_formWrap select{
+  width:100%;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--nagool-border);
+  background: rgba(255,255,255,.04);
+  color: var(--nagool-text);
+  outline:none;
+}
+
+#Nagool_formWrap input::placeholder{
+  color: rgba(255,255,255,.5);
+}
+
+#Nagool_formWrap select{
+  appearance:none;
+}
+
+#Nagool_startBtn{
+  margin-top:12px;
+  width:100%;
+  padding:12px 12px;
+  border-radius:14px;
+  border:0;
+  cursor:pointer;
+  background: var(--nagool-primary);
+  color:#fff;
+  font-weight:700;
+}
+
+#Nagool_startBtn:disabled{
+  opacity:.65;
+  cursor:not-allowed;
+}
+
+#Nagool_connectBtn,
+#Nagool_disconnectBtn{
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid var(--nagool-border);
+  cursor:pointer;
+  background: rgba(255,255,255,.04);
+  color: var(--nagool-text);
+}
+
+#Nagool_hint{
+  margin-top:10px;
+  color: rgba(255,255,255,.9);
+  font-size:12.5px;
+  line-height:1.35;
+}
+
+/* RTL: move the floating button too */
+#Nagool_root[dir="rtl"] .Nagool_floatBtn{
+  position:fixed;
+  left:18px;
+  right:auto;
+  bottom:18px;
+}
+#Nagool_root[dir="ltr"] .Nagool_floatBtn{
+  position:fixed;
+  right:18px;
+  left:auto;
+  bottom:18px;
+}
+
+/* header left group */
+.Nagool_headerLeft{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* RTL: move the floating button too */
+#Nagool_root[dir="rtl"] .Nagool_floatBtn{
+  position:fixed;
+  left:18px;
+  right:auto;
+  bottom:18px;
+}
+#Nagool_root[dir="ltr"] .Nagool_floatBtn{
+  position:fixed;
+  right:18px;
+  left:auto;
+  bottom:18px;
+}
+
+/* header left group */
+.Nagool_headerLeft{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}

@@ -1,8 +1,9 @@
 (() => {
-  const API_ORIGIN = window.location.origin; // same origin as /test-widget when served by API
+  const API_ORIGIN = window.location.origin;
   const SESSION_ENDPOINT = API_ORIGIN + "/v1/widget/session";
+  const BOOTSTRAP_ENDPOINT = API_ORIGIN + "/v1/widget/bootstrap";
+  const START_SESSION_ENDPOINT = API_ORIGIN + "/v1/session/start";
 
-  // UI helpers
   function byId(id) { return document.getElementById(id); }
   function setStatus(text) {
     const el = byId("Nagool_status");
@@ -15,8 +16,55 @@
     const link = document.createElement("link");
     link.id = cssId;
     link.rel = "stylesheet";
-    link.href = API_ORIGIN + "/widget.css?v=1";
+    link.href = API_ORIGIN + "/widget.css?v=4";
     document.head.appendChild(link);
+  }
+
+  function setTheme(uiConfig) {
+    if (!uiConfig) return;
+    const root = byId("Nagool_root");
+    if (!root) return;
+    root.style.setProperty("--nagool-primary", uiConfig.primaryColor || "#fc0a7a");
+    root.style.setProperty("--nagool-bg", uiConfig.bgColor || "#0b0b0b");
+    root.style.setProperty("--nagool-text", uiConfig.textColor || "#ffffff");
+    root.style.setProperty("--nagool-radius", String(uiConfig.borderRadius || 16) + "px");
+    const title = byId("Nagool_title");
+    if (title && uiConfig.brandName) title.textContent = uiConfig.brandName;
+
+    const logo = byId("Nagool_logo");
+    if (logo && uiConfig.logoUrl) {
+      logo.src = uiConfig.logoUrl;
+      logo.style.display = "inline-block";
+    }
+  }
+
+  function lsKey(tenantId) { return "nagool_user_" + tenantId; }
+  function loadUser(tenantId) {
+    try { return JSON.parse(localStorage.getItem(lsKey(tenantId)) || "null"); } catch { return null; }
+  }
+  function saveUser(tenantId, obj) {
+    try { localStorage.setItem(lsKey(tenantId), JSON.stringify(obj)); } catch {}
+  }
+
+  async function fetchBootstrap(tenantId) {
+    const r = await fetch(BOOTSTRAP_ENDPOINT + "?tenantId=" + encodeURIComponent(tenantId));
+    if (!r.ok) throw new Error("bootstrap_error: " + (await r.text()));
+    return await r.json();
+  }
+
+  async function startAppSession(payload) {
+    const r = await fetch(START_SESSION_ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error("start_session_error: " + (await r.text()));
+    return await r.json();
+  }
+
+  function isRtlLang(code) {
+    const rtl = new Set(["ar", "ar-OM", "fa", "ur"]);
+    return rtl.has(String(code || "").trim());
   }
 
   function createUI() {
@@ -24,10 +72,11 @@
     ensureCss();
 
     const script = document.currentScript;
-    const publicKey = script?.getAttribute("data-nagool-key") || "pub_test";
+    const tenantId = script?.getAttribute("data-nagool-key") || "demo"; // MVP: key == tenantId
 
     const root = document.createElement("div");
     root.id = "Nagool_root";
+    root.setAttribute("dir", "ltr");
 
     const panel = document.createElement("div");
     panel.className = "Nagool_panel";
@@ -35,29 +84,72 @@
     const header = document.createElement("div");
     header.className = "Nagool_header";
 
+    const headerLeft = document.createElement("div");
+    headerLeft.className = "Nagool_headerLeft";
+
+    const logo = document.createElement("img");
+    logo.id = "Nagool_logo";
+    logo.alt = "Logo";
+
     const title = document.createElement("div");
+    title.id = "Nagool_title";
     title.textContent = "Nagool";
+
+    headerLeft.appendChild(logo);
+    headerLeft.appendChild(title);
 
     const close = document.createElement("button");
     close.textContent = "✕";
     close.ariaLabel = "Close";
 
-    header.appendChild(title);
+    header.appendChild(headerLeft);
     header.appendChild(close);
 
     const body = document.createElement("div");
     body.className = "Nagool_body";
     body.innerHTML = `
       <div><strong>Voice AI</strong></div>
-      <div class="Nagool_subtext">Connect → allow microphone → talk.</div>
-      <div class="Nagool_badge" id="Nagool_status">idle</div>
+      <div class="Nagool_subtext">Fill the form → Start → allow microphone → talk.</div>
+      <div class="Nagool_badge" id="Nagool_status">loading...</div>
 
-      <div class="Nagool_subtext" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button id="Nagool_connectBtn" style="padding:10px 12px;border-radius:10px;border:1px solid #ddd;cursor:pointer;background:#fff;">Connect</button>
-        <button id="Nagool_disconnectBtn" style="padding:10px 12px;border-radius:10px;border:1px solid #ddd;cursor:pointer;background:#fff;display:none;">Disconnect</button>
+      <div id="Nagool_formWrap" style="margin-top:12px;">
+        <div class="Nagool_subtext" style="margin-top:10px;">Name</div>
+        <input id="Nagool_name" placeholder="Your name"/>
+
+        <div class="Nagool_subtext" style="margin-top:10px;">Country code</div>
+        <select id="Nagool_cc">
+          <option value="+968">+968 (Oman)</option>
+          <option value="+971">+971 (UAE)</option>
+          <option value="+966">+966 (Saudi)</option>
+          <option value="+965">+965 (Kuwait)</option>
+          <option value="+974">+974 (Qatar)</option>
+          <option value="+973">+973 (Bahrain)</option>
+          <option value="+98">+98 (Iran)</option>
+          <option value="+91">+91 (India)</option>
+          <option value="+92">+92 (Pakistan)</option>
+          <option value="+63">+63 (Philippines)</option>
+          <option value="+66">+66 (Thailand)</option>
+          <option value="+86">+86 (China)</option>
+          <option value="+7">+7 (Russia)</option>
+          <option value="+44">+44 (UK)</option>
+          <option value="+1">+1 (US/CA)</option>
+        </select>
+
+        <div class="Nagool_subtext" style="margin-top:10px;">Mobile number</div>
+        <input id="Nagool_phone" placeholder="e.g. 99999999" inputmode="tel"/>
+
+        <div class="Nagool_subtext" style="margin-top:10px;">Language</div>
+        <select id="Nagool_lang"></select>
+
+        <button id="Nagool_startBtn">Start Chat</button>
+
+        <div class="Nagool_subtext" style="margin-top:10px;opacity:.95;" id="Nagool_formHint"></div>
       </div>
 
-      <div class="Nagool_subtext" style="margin-top:10px;">Key: <code>${publicKey}</code></div>
+      <div class="Nagool_subtext" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="Nagool_disconnectBtn" style="display:none;">Disconnect</button>
+      </div>
+
       <div class="Nagool_subtext" style="margin-top:10px;" id="Nagool_hint"></div>
     `;
 
@@ -80,26 +172,26 @@
     root.appendChild(floatBtn);
     document.body.appendChild(root);
 
-    return { publicKey };
+    return { tenantId };
   }
 
   // ---- Realtime WebRTC ----
   let pc = null;
   let localStream = null;
 
-  async function createSession(publicKey) {
+  async function createSession(tenantId) {
     const r = await fetch(SESSION_ENDPOINT, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ publicKey })
+      body: JSON.stringify({ publicKey: tenantId })
     });
     if (!r.ok) throw new Error("session_error: " + (await r.text()));
     return await r.json();
   }
 
-  async function connect(publicKey) {
+  async function connect(tenantId) {
     setStatus("creating session...");
-    const sess = await createSession(publicKey);
+    const sess = await createSession(tenantId);
 
     const model = sess?.model || "gpt-realtime";
     const clientSecret = sess?.clientSecret;
@@ -110,11 +202,8 @@
 
     setStatus("webrtc...");
     pc = new RTCPeerConnection();
-
-    // send local audio
     localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
-    // play remote audio
     pc.ontrack = (event) => {
       const [stream] = event.streams;
       let audio = document.getElementById("Nagool_remote_audio");
@@ -128,11 +217,9 @@
       audio.srcObject = stream;
     };
 
-    // SDP offer
     const offer = await pc.createOffer({ offerToReceiveAudio: true });
     await pc.setLocalDescription(offer);
 
-    // Exchange SDP with OpenAI Realtime
     const sdpResp = await fetch(
       "https://api.openai.com/v1/realtime?model=" + encodeURIComponent(model),
       {
@@ -172,27 +259,91 @@
     }
   }
 
-  // init UI
   const ui = createUI();
   if (!ui) return;
 
-  // wire buttons
-  setTimeout(() => {
-    const connectBtn = byId("Nagool_connectBtn");
-    const disconnectBtn = byId("Nagool_disconnectBtn");
-    if (!connectBtn || !disconnectBtn) return;
+  // boot + hydrate
+  (async () => {
+    try {
+      const bs = await fetchBootstrap(ui.tenantId);
+      setTheme(bs.uiConfig);
+      setStatus("idle");
 
-    connectBtn.addEventListener("click", async () => {
-      connectBtn.disabled = true;
+      const langSel = byId("Nagool_lang");
+      if (langSel && Array.isArray(bs.languages)) {
+        langSel.innerHTML = bs.languages
+          .map(l => `<option value="${String(l.code)}">${String(l.label)}</option>`)
+          .join("");
+        if (bs.defaults?.language) langSel.value = bs.defaults.language;
+      }
+
+      const prev = loadUser(ui.tenantId);
+      if (prev) {
+        const name = byId("Nagool_name");
+        const cc = byId("Nagool_cc");
+        const phone = byId("Nagool_phone");
+        const lang = byId("Nagool_lang");
+        if (name) name.value = prev.name || "";
+        if (cc) cc.value = prev.countryCode || "+968";
+        if (phone) phone.value = prev.phone || "";
+        if (lang) lang.value = prev.language || (bs.defaults?.language || "en");
+        const root = byId("Nagool_root");
+        if (root) root.setAttribute("dir", isRtlLang(lang?.value) ? "rtl" : "ltr");
+      }
+    } catch (e) {
+      console.error(e);
+      setStatus("error");
+      const hint = byId("Nagool_formHint");
+      if (hint) hint.textContent = "Failed to load config.";
+    }
+  })();
+
+  setTimeout(() => {
+    const startBtn = byId("Nagool_startBtn");
+    const disconnectBtn = byId("Nagool_disconnectBtn");
+    const formHint = byId("Nagool_formHint");
+
+    if (!startBtn || !disconnectBtn) return;
+
+    startBtn.addEventListener("click", async () => {
+      startBtn.disabled = true;
+      if (formHint) formHint.textContent = "";
+
       try {
-        await connect(ui.publicKey);
-        connectBtn.style.display = "none";
+        const name = (byId("Nagool_name")?.value || "").trim();
+        const countryCode = byId("Nagool_cc")?.value || "+968";
+        const phone = (byId("Nagool_phone")?.value || "").trim();
+        const language = byId("Nagool_lang")?.value || "en";
+
+        if (!name) throw new Error("Please enter your name.");
+        if (!phone) throw new Error("Please enter your mobile number.");
+
+        saveUser(ui.tenantId, { name, countryCode, phone, language });
+
+        const root = byId("Nagool_root");
+        if (root) root.setAttribute("dir", isRtlLang(language) ? "rtl" : "ltr");
+
+        setStatus("starting...");
+        const ss = await startAppSession({
+          tenantId: ui.tenantId,
+          name,
+          countryCode,
+          phone,
+          language,
+        });
+
+        const hint = byId("Nagool_hint");
+        if (hint && ss?.greeting) hint.textContent = ss.greeting;
+
+        setStatus("connecting...");
+        await connect(ui.tenantId);
+
         disconnectBtn.style.display = "inline-block";
       } catch (e) {
         console.error(e);
-        setStatus("error");
-        connectBtn.disabled = false;
-        alert(String(e?.message || e));
+        setStatus("idle");
+        if (formHint) formHint.textContent = String(e?.message || e);
+        startBtn.disabled = false;
       }
     });
 
@@ -200,8 +351,7 @@
       disconnectBtn.disabled = true;
       await disconnect();
       disconnectBtn.style.display = "none";
-      connectBtn.style.display = "inline-block";
-      connectBtn.disabled = false;
+      startBtn.disabled = false;
       disconnectBtn.disabled = false;
     });
   }, 0);
