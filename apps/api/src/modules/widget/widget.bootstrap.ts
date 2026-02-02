@@ -1,4 +1,5 @@
 import { FastifyInstance } from "fastify";
+import { resolveTenantIdByWidgetKey } from "./widget.keys";
 
 type UiConfig = {
   primaryColor: string;
@@ -57,7 +58,16 @@ const LANGUAGES: Language[] = [
 
 export function widgetBootstrapRoutes(app: FastifyInstance) {
   app.get("/v1/widget/bootstrap", async (req, reply) => {
-    const { tenantId } = (req.query as any) ?? {};
+    const { widgetKey } = (req.query as any) ?? {};
+
+    if (!widgetKey || typeof widgetKey !== "string") {
+      return reply.status(400).send({ error: "widgetKey is required" });
+    }
+
+    const tenantId = resolveTenantIdByWidgetKey(widgetKey);
+    if (!tenantId) {
+      return reply.status(403).send({ error: "invalid widgetKey" });
+    }
 
     if (!tenantId || typeof tenantId !== "string") {
       return reply.status(400).send({ error: "tenantId is required" });

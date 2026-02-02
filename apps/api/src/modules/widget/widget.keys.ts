@@ -1,8 +1,15 @@
-export function resolveTenantIdFromWidgetKey(widgetKey: string) {
-  // MVP mapping:
-  // pub_demo -> demo
-  if (!widgetKey.startsWith("pub_")) return null;
-  const tenantId = widgetKey.slice("pub_".length);
-  if (!tenantId) return null;
-  return tenantId;
+export type WidgetKeyRecord = {
+  widgetKey: string;  // public key used in script tag
+  tenantId: string;   // internal tenant id
+  isActive: boolean;
+};
+
+const KEYS: WidgetKeyRecord[] = [
+  { widgetKey: "pub_demo", tenantId: "demo", isActive: true },
+  { widgetKey: "pub_test", tenantId: "demo", isActive: true },
+];
+
+export function resolveTenantIdByWidgetKey(widgetKey: string): string | null {
+  const k = KEYS.find(x => x.widgetKey === widgetKey && x.isActive);
+  return k?.tenantId || null;
 }

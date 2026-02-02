@@ -1,5 +1,8 @@
 (() => {
-  const API_ORIGIN = window.location.origin;
+  // read config from script tag
+  const scriptEl = document.currentScript;
+  const API_ORIGIN = scriptEl?.getAttribute("data-nagool-api") || window.location.origin;
+
   const SESSION_ENDPOINT = API_ORIGIN + "/v1/widget/session";
   const BOOTSTRAP_ENDPOINT = API_ORIGIN + "/v1/widget/bootstrap";
   const START_SESSION_ENDPOINT = API_ORIGIN + "/v1/session/start";
@@ -24,10 +27,12 @@
     if (!uiConfig) return;
     const root = byId("Nagool_root");
     if (!root) return;
+
     root.style.setProperty("--nagool-primary", uiConfig.primaryColor || "#fc0a7a");
     root.style.setProperty("--nagool-bg", uiConfig.bgColor || "#0b0b0b");
     root.style.setProperty("--nagool-text", uiConfig.textColor || "#ffffff");
     root.style.setProperty("--nagool-radius", String(uiConfig.borderRadius || 16) + "px");
+
     const title = byId("Nagool_title");
     if (title && uiConfig.brandName) title.textContent = uiConfig.brandName;
 
@@ -38,16 +43,16 @@
     }
   }
 
-  function lsKey(tenantId) { return "nagool_user_" + tenantId; }
-  function loadUser(tenantId) {
-    try { return JSON.parse(localStorage.getItem(lsKey(tenantId)) || "null"); } catch { return null; }
+  function lsKey(widgetKey) { return "nagool_user_" + widgetKey; }
+  function loadUser(widgetKey) {
+    try { return JSON.parse(localStorage.getItem(lsKey(widgetKey)) || "null"); } catch { return null; }
   }
-  function saveUser(tenantId, obj) {
-    try { localStorage.setItem(lsKey(tenantId), JSON.stringify(obj)); } catch {}
+  function saveUser(widgetKey, obj) {
+    try { localStorage.setItem(lsKey(widgetKey), JSON.stringify(obj)); } catch {}
   }
 
-  async function fetchBootstrap(tenantId) {
-    const r = await fetch(BOOTSTRAP_ENDPOINT + "?tenantId=" + encodeURIComponent(tenantId));
+  async function fetchBootstrap(widgetKey) {
+    const r = await fetch(BOOTSTRAP_ENDPOINT + "?widgetKey=" + encodeURIComponent(widgetKey));
     if (!r.ok) throw new Error("bootstrap_error: " + (await r.text()));
     return await r.json();
   }
@@ -71,8 +76,7 @@
     if (byId("Nagool_root")) return null;
     ensureCss();
 
-    const script = document.currentScript;
-    const tenantId = script?.getAttribute("data-nagool-key") || "demo"; // MVP: key == tenantId
+    const widgetKey = scriptEl?.getAttribute("data-nagool-key") || "pub_demo";
 
     const root = document.createElement("div");
     root.id = "Nagool_root";
@@ -90,6 +94,11 @@
     const logo = document.createElement("img");
     logo.id = "Nagool_logo";
     logo.alt = "Logo";
+    logo.style.width = "28px";
+    logo.style.height = "28px";
+    logo.style.borderRadius = "8px";
+    logo.style.objectFit = "cover";
+    logo.style.display = "none";
 
     const title = document.createElement("div");
     title.id = "Nagool_title";
@@ -172,7 +181,7 @@
     root.appendChild(floatBtn);
     document.body.appendChild(root);
 
-    return { tenantId };
+    return { widgetKey };
   }
 
   // ---- Realtime WebRTC ----
@@ -262,10 +271,14 @@
   const ui = createUI();
   if (!ui) return;
 
+  let resolvedTenantId = null;
+
   // boot + hydrate
   (async () => {
     try {
-      const bs = await fetchBootstrap(ui.tenantId);
+      const bs = await fetchBootstrap(ui.widgetKey);
+      resolvedTenantId = bs.tenantId;
+
       setTheme(bs.uiConfig);
       setStatus("idle");
 
@@ -277,7 +290,7 @@
         if (bs.defaults?.language) langSel.value = bs.defaults.language;
       }
 
-      const prev = loadUser(ui.tenantId);
+      const prev = loadUser(ui.widgetKey);
       if (prev) {
         const name = byId("Nagool_name");
         const cc = byId("Nagool_cc");
@@ -287,6 +300,7 @@
         if (cc) cc.value = prev.countryCode || "+968";
         if (phone) phone.value = prev.phone || "";
         if (lang) lang.value = prev.language || (bs.defaults?.language || "en");
+
         const root = byId("Nagool_root");
         if (root) root.setAttribute("dir", isRtlLang(lang?.value) ? "rtl" : "ltr");
       }
@@ -317,15 +331,16 @@
 
         if (!name) throw new Error("Please enter your name.");
         if (!phone) throw new Error("Please enter your mobile number.");
+        if (!resolvedTenantId) throw new Error("Tenant is not resolved yet. Refresh page.");
 
-        saveUser(ui.tenantId, { name, countryCode, phone, language });
+        saveUser(ui.widgetKey, { name, countryCode, phone, language });
 
         const root = byId("Nagool_root");
         if (root) root.setAttribute("dir", isRtlLang(language) ? "rtl" : "ltr");
 
         setStatus("starting...");
         const ss = await startAppSession({
-          tenantId: ui.tenantId,
+          tenantId: resolvedTenantId,
           name,
           countryCode,
           phone,
@@ -336,7 +351,7 @@
         if (hint && ss?.greeting) hint.textContent = ss.greeting;
 
         setStatus("connecting...");
-        await connect(ui.tenantId);
+        await connect(resolvedTenantId);
 
         disconnectBtn.style.display = "inline-block";
       } catch (e) {
