@@ -14,3 +14,7 @@ apps/serviceAccount.json
 **/node_modules/
 **/.next/
 .env*
+
+# build artifacts / local scripts
+apps/api/dist/
+fix-*.mjs
