@@ -1,67 +1,82 @@
-import type { FastifyInstance } from "fastify";
-import { ChatMessageBodySchema } from "./schema";
-import { store } from "./store";
-import { generateReply } from "./openai";
+import type { FastifyInstance, FastifyPluginAsync } from "fastify";
+import { z } from "zod";
+import { buildSystemPrompt } from "../../lib/promptBuilder";
+import { addDoc } from "../../lib/firestoreAdmin";
+import { createLead } from "../leads/createLead";
+import { trackUsage } from "../stats/trackUsage";
+import { checkAndIncDailyMessageLimit } from "../limits/checkLimit";
 
-export default async function chatRoutes(app: FastifyInstance) {
+const BodySchema = z.object({
+  message: z.string().min(1),
+  });
+
+function shouldCreateLead(text: string, triggerKeywords: string[]) {
+  const s = text.toLowerCase();
+  const defaults = [
+    "price","buy","order","contact","whatsapp","call","quote",
+    "قیمت","خرید","تماس","واتساپ"
+  ];
+  const keys = [...new Set([...defaults, ...(triggerKeywords ?? [])])];
+  return keys.some((k) => k && s.includes(k.toLowerCase()));
+}
+
+function isPromptInjectionAttempt(text: string) {
+  const s = text.toLowerCase();
+  return (
+    s.includes("system prompt") ||
+    s.includes("developer message") ||
+    s.includes("ignore previous") ||
+    s.includes("reveal") && s.includes("instructions") ||
+    s.includes("override") && (s.includes("rule") || s.includes("policy"))
+  );
+}
+
+/**
+ * Named export (usable if you prefer direct call).
+ */
+export async function registerChatRoutes(app: FastifyInstance) {
   app.post("/chat/message", async (req, reply) => {
-    const parsed = ChatMessageBodySchema.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.status(400).send({
-        error: "VALIDATION_ERROR",
-        details: parsed.error.flatten(),
-      });
+    const body = BodySchema.parse(req.body ?? {});
+    const headerTenant = (req.headers["x-tenant-id"] as string | undefined) ?? undefined;
+
+    const tenantId = headerTenant;
+    if (!tenantId) return reply.code(400).send({ ok: false, error: "TENANT_REQUIRED" });
+
+    const lim = await checkAndIncDailyMessageLimit(tenantId);
+    if (!lim.ok) {
+      return reply.code(429).send({ ok: false, error: "LIMIT_REACHED", max: lim.max, used: lim.used });
     }
 
-    const { sessionId, text } = parsed.data;
+    const { config } = await buildSystemPrompt(tenantId);
 
-    const session = store.getSession(sessionId);
-    if (!session) {
-      return reply.status(404).send({
-        error: "SESSION_NOT_FOUND",
-        message: "Session not found. Start a session first.",
-      });
+    // Phase 4 Stub: pipeline+storage+lead+stats proof (OpenAI wiring comes next)
+    const assistantText = `✅ (Phase4 Stub) "${body.message}"`;
+
+    const injection = isPromptInjectionAttempt(body.message);
+
+    const msgId = await addDoc(`tenants/${tenantId}/messages`, {
+      createdAt: new Date().toISOString(),
+      user: { text: body.message },
+      assistant: { text: assistantText },
+      source: "api",
+    });
+
+    if (config.leadCapture.enabled && shouldCreateLead(body.message, config.leadCapture.triggerKeywords)) {
+      await createLead(tenantId, { source: "api", message: body.message });
     }
 
-    const tenant = store.getTenant(session.tenantId);
-    if (!tenant) {
-      return reply.status(400).send({
-        error: "TENANT_NOT_FOUND",
-        message: "Tenant config missing for this session.",
-      });
-    }
+    await trackUsage(tenantId, { messagesInc: 1, tokensInc: 0 });
 
-    // user message
-    store.appendMessage(
-      sessionId,
-      { role: "user", content: text, ts: Date.now() },
-      tenant.memoryMaxTurns
-    );
-
-    const history = store.getMessages(sessionId);
-
-    let replyText = "";
-    try {
-      replyText = await generateReply({
-        tenant,
-        history,
-        userText: text,
-      });
-    } catch (e: any) {
-      const msg = String(e?.message ?? e);
-      return reply.status(502).send({
-        error: "OPENAI_FAILED",
-        message: msg,
-      });
-    }
-
-    // assistant message
-    store.appendMessage(
-      sessionId,
-      { role: "assistant", content: replyText, ts: Date.now() },
-      tenant.memoryMaxTurns
-    );
-
-    return reply.send({ replyText, sessionId });
+    return reply.send({ ok: true, messageId: msgId, assistant: { text: assistantText } });
   });
 }
+
+/**
+ * ✅ Default export = Fastify plugin
+ * This fixes: "Plugin must be a function ... Received undefined"
+ */
+const chatRoutes: FastifyPluginAsync = async (app) => {
+  await registerChatRoutes(app);
+};
+
+export default chatRoutes;

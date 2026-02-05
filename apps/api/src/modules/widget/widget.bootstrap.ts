@@ -1,3 +1,4 @@
+import { resolveWidgetKey } from "../widgetKeys/service";
 import type { FastifyInstance } from "fastify";
 
 export async function widgetBootstrapRoutes(app: FastifyInstance) {
