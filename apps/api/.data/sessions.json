@@ -1,0 +1,65 @@
+{
+  "b70bd39d-5a0e-4ebd-bd58-9ca0ef667fa0": {
+    "sessionId": "b70bd39d-5a0e-4ebd-bd58-9ca0ef667fa0",
+    "tenantId": "demo",
+    "name": "Ali",
+    "phone": "+96899999999",
+    "language": "ar-OM",
+    "countryCode": "OM",
+    "createdAt": 1770049845341
+  },
+  "20223884-1595-4230-8c3e-3d401e224107": {
+    "sessionId": "20223884-1595-4230-8c3e-3d401e224107",
+    "tenantId": "demo",
+    "name": "Ali",
+    "phone": "+96899999999",
+    "language": "ar-OM",
+    "countryCode": "OM",
+    "createdAt": 1770049854317
+  },
+  "09134f1c-81f0-4251-bd54-12084152ebe9": {
+    "sessionId": "09134f1c-81f0-4251-bd54-12084152ebe9",
+    "tenantId": "demo",
+    "name": "اشکان",
+    "phone": "92537377",
+    "language": "en",
+    "countryCode": "+968",
+    "createdAt": 1770051265999
+  },
+  "51de5be0-1957-4878-a292-75c0c85313dd": {
+    "sessionId": "51de5be0-1957-4878-a292-75c0c85313dd",
+    "tenantId": "demo",
+    "name": "Ali",
+    "phone": "+96899999999",
+    "language": "ar-OM",
+    "countryCode": "OM",
+    "createdAt": 1770235569127
+  },
+  "a45312c3-3cbe-4492-9c37-ccd3e176c367": {
+    "sessionId": "a45312c3-3cbe-4492-9c37-ccd3e176c367",
+    "tenantId": "demo2",
+    "name": "Ali",
+    "phone": "+96899999999",
+    "language": "ar-OM",
+    "countryCode": "OM",
+    "createdAt": 1770277508705
+  },
+  "3d6217f7-0963-4205-98d5-dce344b16ce5": {
+    "sessionId": "3d6217f7-0963-4205-98d5-dce344b16ce5",
+    "tenantId": "t1",
+    "name": "Ali",
+    "phone": "+96899999999",
+    "language": "ar-OM",
+    "countryCode": "OM",
+    "createdAt": 1770278438371
+  },
+  "3e881ac7-23f7-41c7-ba3d-f6ea76b3a3da": {
+    "sessionId": "3e881ac7-23f7-41c7-ba3d-f6ea76b3a3da",
+    "tenantId": "t1",
+    "name": "Ali",
+    "phone": "+96899999999",
+    "language": "ar-OM",
+    "countryCode": "OM",
+    "createdAt": 1770278542316
+  }
+}

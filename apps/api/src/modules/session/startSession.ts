@@ -1,48 +1,28 @@
 import { randomUUID } from "crypto";
-import { db } from "../../lib/firebase";
-import { startSessionSchema } from "./schema";
-
-function makeGreeting(language: string, name: string) {
-  const safeName = (name || "").trim() || "friend";
-
-  if (language === "ar-OM" || language === "ar") {
-    return `هلا ${safeName} 👋 أنا نقول. قلّي شتحتاج وبساعدك فوراً.`;
-  }
-  if (language === "fa") {
-    return `سلام ${safeName} 👋 من نقول هستم. بگو دقیقاً چی می‌خوای تا سریع راهنمایی‌ت کنم.`;
-  }
-  return `Hi ${safeName} 👋 I'm Nagool. Tell me what you need and I'll help you right away.`;
-}
+import { StartSessionBodySchema } from "./schema";
+import { store } from "../chat/store";
 
 export async function startSession(body: unknown) {
-  const data = startSessionSchema.parse(body);
+  const parsed = StartSessionBodySchema.safeParse(body);
+  if (!parsed.success) {
+    // Keep same style you already had: array json in error string
+    throw new Error(JSON.stringify(parsed.error.issues, null, 2));
+  }
+
+  const data = parsed.data;
   const sessionId = randomUUID();
 
-  const fullPhone = `${data.countryCode}${data.phone}`;
-  const greeting = makeGreeting(data.language, data.name);
-  const now = new Date();
+  // Persist for chat
+  store.createSession({
+    sessionId,
+    tenantId: data.tenantId,
+    name: data.name,
+    phone: data.phone,
+    language: data.language,
+    countryCode: data.countryCode,
+  });
 
-  if (db) {
-    await db.collection("sessions").doc(sessionId).set({
-      tenantId: data.tenantId,
-      name: data.name,
-      phone: fullPhone,
-      email: data.email ?? null,
-      language: data.language,
-      createdAt: now,
-      status: "active",
-    });
-
-    await db.collection("leads").doc(sessionId).set({
-      tenantId: data.tenantId,
-      name: data.name,
-      phone: fullPhone,
-      email: data.email ?? null,
-      language: data.language,
-      createdAt: now,
-      source: "widget",
-    });
-  }
+  const greeting = `هلا ${data.name} 👋 أنا نقول. قلّي شتحتاج وبساعدك فوراً.`;
 
   return {
     sessionId,

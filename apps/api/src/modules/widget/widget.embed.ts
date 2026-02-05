@@ -1,45 +1,59 @@
-import { FastifyInstance } from "fastify";
-import { resolveTenantIdByWidgetKey } from "./widget.keys";
+import type { FastifyInstance } from "fastify";
 
-function getApiOrigin(req: any) {
-  const host =
-    req.headers["x-forwarded-host"] ||
-    req.headers["host"];
+export async function widgetEmbedRoutes(app: FastifyInstance) {
+  // This serves a tiny embed script: /widget/embed.js
+  app.get("/widget/embed.js", async (_req, reply) => {
+    const js = `
+(function () {
+  // Prevent double init
+  if (window.__NAGOOL_WIDGET_LOADED__) return;
+  window.__NAGOOL_WIDGET_LOADED__ = true;
 
-  const proto =
-    (req.headers["x-forwarded-proto"] as string) ||
-    (req.protocol as string) ||
-    "http";
+  var ORIGIN = window.location.origin;
 
-  return `${proto}://${host}`;
-}
+  // Create iframe
+  var iframe = document.createElement("iframe");
+  iframe.src = ORIGIN + "/test-widget";
+  iframe.id = "nagool-widget-frame";
+  iframe.style.position = "fixed";
+  iframe.style.right = "16px";
+  iframe.style.bottom = "80px";
+  iframe.style.width = "360px";
+  iframe.style.height = "520px";
+  iframe.style.border = "0";
+  iframe.style.borderRadius = "16px";
+  iframe.style.boxShadow = "0 10px 30px rgba(0,0,0,0.2)";
+  iframe.style.display = "none";
+  iframe.style.zIndex = "999999";
 
-export function widgetEmbedRoutes(app: FastifyInstance) {
-  app.get("/v1/widget/embed", async (req, reply) => {
-    const { widgetKey } = (req.query as any) ?? {};
+  // Create button
+  var btn = document.createElement("button");
+  btn.id = "nagool-widget-btn";
+  btn.innerText = "🎤";
+  btn.style.position = "fixed";
+  btn.style.right = "16px";
+  btn.style.bottom = "16px";
+  btn.style.width = "56px";
+  btn.style.height = "56px";
+  btn.style.border = "0";
+  btn.style.borderRadius = "999px";
+  btn.style.cursor = "pointer";
+  btn.style.fontSize = "22px";
+  btn.style.boxShadow = "0 10px 30px rgba(0,0,0,0.25)";
+  btn.style.background = "#111";
+  btn.style.color = "#fff";
+  btn.style.zIndex = "1000000";
 
-    if (!widgetKey || typeof widgetKey !== "string") {
-      return reply.status(400).send({ error: "widgetKey is required" });
-    }
+  btn.addEventListener("click", function () {
+    iframe.style.display = (iframe.style.display === "none") ? "block" : "none";
+  });
 
-    const tenantId = resolveTenantIdByWidgetKey(widgetKey);
-    if (!tenantId) {
-      return reply.status(403).send({ error: "invalid widgetKey" });
-    }
+  document.body.appendChild(iframe);
+  document.body.appendChild(btn);
+})();`;
 
-    const apiOrigin = getApiOrigin(req);
-
-    const html =
-      `<script src="${apiOrigin}/widget.js?v=4" ` +
-      `data-nagool-api="${apiOrigin}" ` +
-      `data-nagool-key="${widgetKey}"></script>`;
-
-    return reply.send({
-      ok: true,
-      tenantId,
-      widgetKey,
-      apiOrigin,
-      html,
-    });
+    reply
+      .header("content-type", "application/javascript; charset=utf-8")
+      .send(js);
   });
 }
