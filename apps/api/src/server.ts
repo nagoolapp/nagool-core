@@ -1,11 +1,7 @@
-const port = Number(process.env.PORT || 3001);
-function corsOrigins() {
-  const raw = process.env.CORS_ORIGINS || "";
-  return raw.split(",").map(x => x.trim()).filter(Boolean);
-}
-
 import "dotenv/config";
 import Fastify from "fastify";
+import cors from "@fastify/cors";
+
 import tenantRoutes from "./modules/tenants/routes";
 
 import { startSessionHandler } from "./modules/session/startSessionHandler";
@@ -19,6 +15,7 @@ import { widgetTestPageRoutes } from "./modules/widget/widget.testpage";
 import { widgetEmbedRoutes } from "./modules/widget/widget.embed";
 import { widgetBootstrapRoutes } from "./modules/widget/widget.bootstrap";
 import { widgetBootstrapRoutesV2 } from "./modules/widget/widget.bootstrap.v2";
+
 import chatRoutes from "./modules/chat/routes";
 import authRoutes from "./modules/auth/routes";
 import publicRoutes from "./modules/public/routes";
@@ -27,7 +24,45 @@ import { tenantPanelRoutesV2 } from "./modules/panel/tenantPanel.routes.v2";
 import widgetKeyRoutes from "./modules/widgetKeys/routes";
 import { createTenant } from "./modules/tenant/createTenant";
 
+const port = Number(process.env.PORT || 3001);
+
+function corsOrigins(): string[] {
+  const raw = process.env.CORS_ORIGINS || "";
+  const list = raw
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  // fallback safe defaults (so you don't brick prod if env is empty)
+  const defaults = ["https://app.nagool.com", "http://localhost:3000"];
+
+  // merge unique
+  return Array.from(new Set([...list, ...defaults]));
+}
+
 const app = Fastify({ logger: true });
+
+/**
+ * ✅ CORS MUST be registered before routes
+ * fixes preflight (OPTIONS) + "Failed to fetch" in browser
+ */
+await app.register(cors, {
+  origin: (origin, cb) => {
+    // allow non-browser requests (curl, server-to-server)
+    if (!origin) return cb(null, true);
+
+    const allowed = corsOrigins();
+    if (allowed.includes(origin)) return cb(null, true);
+
+    // block unknown origins
+    return cb(new Error("CORS_NOT_ALLOWED"), false);
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+});
 
 app.get("/health", async () => ({ ok: true, service: "nagool-api" }));
 
@@ -35,7 +70,9 @@ app.get("/health", async () => ({ ok: true, service: "nagool-api" }));
 app.post("/v1/session/start", startSessionHandler);
 
 // ✅ Phase 1: tenant create
-app.post("/v1/tenant/create", createTenant);// Widget routes
+app.post("/v1/tenant/create", createTenant);
+
+// Widget routes
 app.register(widgetBootstrapRoutes);
 app.register(widgetBootstrapRoutesV2);
 app.register(widgetStaticRoutes);
@@ -51,7 +88,8 @@ app.register(panelRoutes, { prefix: "/v1" });
 app.register(tenantPanelRoutesV2, { prefix: "/v1" });
 app.register(widgetKeyRoutes, { prefix: "/v1" });
 app.register(tenantRoutes, { prefix: "/v1" });
-/** ✅ chat routes */
+
+// ✅ chat routes
 app.register(chatRoutes, { prefix: "/v1" });
 
 app.listen({ port, host: "0.0.0.0" }).catch((err) => {
