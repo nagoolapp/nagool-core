@@ -6,7 +6,7 @@ import { resolveWidgetKey } from "../widgetKeys/service";
  * - Returns { tenantId } if ok
  */
 export async function guardWidgetOrigin(req: any, reply: any, widgetKey: string) {
-  const resolved = await resolveWidgetKey(widgetKey);
+  const resolved: any = await resolveWidgetKey(widgetKey);
 
   if (!resolved) {
     reply.code(404).send({ ok: false, error: "WIDGET_KEY_NOT_FOUND" });
