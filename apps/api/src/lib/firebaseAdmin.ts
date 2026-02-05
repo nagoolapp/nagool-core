@@ -1,4 +1,6 @@
-import admin from "firebase-admin";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import * as admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
 
 function mustGet(key: string) {
   const v = process.env[key];
@@ -6,32 +8,40 @@ function mustGet(key: string) {
   return v;
 }
 
-function safeGet(key: string) {
-  return process.env[key] || "";
+function normalizePrivateKey(key: string) {
+  // Render env keeps \n, convert to real newlines
+  return key.replace(/\\n/g, "\n");
 }
 
-// If FIREBASE_OPTIONAL=1 OR FIREBASE_PROJECT_ID is missing, we run in "no-firebase" mode.
-function firebaseEnabled() {
-  if (process.env.FIREBASE_OPTIONAL === "1") return Boolean(process.env.FIREBASE_PROJECT_ID);
-  return true;
+function getServiceAccountFromEnv() {
+  // Option 1: full JSON in one env var
+  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (json) {
+    try {
+      return JSON.parse(json);
+    } catch {
+      throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON (must be valid JSON)");
+    }
+  }
+
+  // Option 2: split env vars
+  const projectId = mustGet("FIREBASE_PROJECT_ID");
+  const clientEmail = mustGet("FIREBASE_CLIENT_EMAIL");
+  const privateKey = normalizePrivateKey(mustGet("FIREBASE_PRIVATE_KEY"));
+
+  return { projectId, clientEmail, privateKey };
 }
-`);
-  return v;
+
+export function ensureFirebase() {
+  if (getApps().length) return;
+  const sa = getServiceAccountFromEnv();
+  initializeApp({ credential: cert(sa as any) });
 }
 
 export function getDb() {
-  if (!firebaseEnabled()) {
-    throw new Error("Firebase disabled (missing env).");
-  }
-  const projectId = mustGet("FIREBASE_PROJECT_ID");
-  // the rest of your original logic remains below if present
-  // NOTE: if your file had more code, we keep it by falling back to old implementation marker
-  return _getDbInternal(projectId);
+  ensureFirebase();
+  return getFirestore();
 }
-),
-    });
-  }
-  return admin.firestore();
-}
+
 
 export { admin };
