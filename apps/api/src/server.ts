@@ -54,7 +54,7 @@ app.register(tenantRoutes, { prefix: "/v1" });
 /** ✅ chat routes */
 app.register(chatRoutes, { prefix: "/v1" });
 
-app.listen({ port: 3001, host: "0.0.0.0" }).catch((err) => {
+app.listen({ port, host: "0.0.0.0" }).catch((err) => {
   app.log.error(err);
   process.exit(1);
 });
