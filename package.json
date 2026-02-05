@@ -9,7 +9,8 @@
     "build:web": "cd apps/web && npm run build",
     "build:api": "tsc -p apps/api/tsconfig.json",
     "build": "npm run build:api",
-    "start": "npm run start:api"
+    "start": "npm run start:api",
+    "start:api:prod": "node apps/api/dist/server.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

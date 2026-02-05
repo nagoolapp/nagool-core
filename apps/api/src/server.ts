@@ -1,11 +1,11 @@
+const port = Number(process.env.PORT || 3001);
 function corsOrigins() {
   const raw = process.env.CORS_ORIGINS || "";
   return raw.split(",").map(x => x.trim()).filter(Boolean);
 }
 
 import "dotenv/config";
-import Fastify from "fastifyconst port = Number(process.env.PORT || 3001);
-";
+import Fastify from "fastify";
 import tenantRoutes from "./modules/tenants/routes";
 
 import { startSessionHandler } from "./modules/session/startSessionHandler";
