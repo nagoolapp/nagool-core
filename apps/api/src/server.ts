@@ -5,7 +5,7 @@ import cors from "@fastify/cors";
 import tenantRoutes from "./modules/tenants/routes";
 
 import { startSessionHandler } from "./modules/session/startSessionHandler";
-import { startSession } from "./modules/session/startSession"; // (اگر جای دیگه نیاز شد، نگهش می‌داریم)
+import { startSession } from "./modules/session/startSession";
 
 import { widgetStaticRoutes } from "./modules/widget/widget.static";
 import { widgetSessionRoutes } from "./modules/widget/widget.session";
@@ -26,50 +26,38 @@ import { createTenant } from "./modules/tenant/createTenant";
 
 const port = Number(process.env.PORT || 3001);
 
-function corsOrigins(): string[] {
-  const raw = process.env.CORS_ORIGINS || "";
-  const list = raw
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
-
-  // fallback safe defaults (so you don't brick prod if env is empty)
-  const defaults = ["https://app.nagool.com", "http://localhost:3000"];
-
-  // merge unique
-  return Array.from(new Set([...list, ...defaults]));
-}
-
 const app = Fastify({ logger: true });
 
 /**
- * ✅ CORS MUST be registered before routes
- * fixes preflight (OPTIONS) + "Failed to fetch" in browser
+ * ✅ CORS (MUST be before routes)
  */
 await app.register(cors, {
   origin: (origin, cb) => {
-    // allow non-browser requests (curl, server-to-server)
     if (!origin) return cb(null, true);
 
-    const allowed = corsOrigins();
-    if (allowed.includes(origin)) return cb(null, true);
+    const allowed = new Set([
+      "https://app.nagool.com",
+      "http://localhost:3000",
+    ]);
 
-    // block unknown origins
-    return cb(new Error("CORS_NOT_ALLOWED"), false);
+    return allowed.has(origin) ? cb(null, true) : cb(new Error("CORS"), false);
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-  preflightContinue: false,
   optionsSuccessStatus: 204,
+});
+
+/**
+ * ✅ HARD FIX: handle ALL preflight requests (otherwise Fastify 404 on OPTIONS)
+ */
+app.options("/*", async (_req, reply) => {
+  return reply.code(204).send();
 });
 
 app.get("/health", async () => ({ ok: true, service: "nagool-api" }));
 
-// ✅ Phase 2: session stored under tenants/{tenantId}/sessions
 app.post("/v1/session/start", startSessionHandler);
-
-// ✅ Phase 1: tenant create
 app.post("/v1/tenant/create", createTenant);
 
 // Widget routes
@@ -88,8 +76,6 @@ app.register(panelRoutes, { prefix: "/v1" });
 app.register(tenantPanelRoutesV2, { prefix: "/v1" });
 app.register(widgetKeyRoutes, { prefix: "/v1" });
 app.register(tenantRoutes, { prefix: "/v1" });
-
-// ✅ chat routes
 app.register(chatRoutes, { prefix: "/v1" });
 
 app.listen({ port, host: "0.0.0.0" }).catch((err) => {
