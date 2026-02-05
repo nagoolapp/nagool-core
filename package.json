@@ -4,7 +4,12 @@
   "private": true,
   "scripts": {
     "dev:api": "tsx watch apps/api/src/server.ts",
-    "dev": "npm run dev:api"
+    "dev": "npm run dev:api",
+    "start:api": "tsx apps/api/src/server.ts",
+    "build:web": "cd apps/web && npm run build",
+    "build:api": "tsc -p apps/api/tsconfig.json",
+    "build": "npm run build:api",
+    "start": "npm run start:api"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
