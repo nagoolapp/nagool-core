@@ -3,3 +3,14 @@ node_modules
 .DS_Store
 *.log
 serviceAccount.json
+
+# --- web ---
+apps/web/.next/
+apps/web/node_modules/
+apps/web/.env*
+apps/serviceAccount.json
+
+# --- general ---
+**/node_modules/
+**/.next/
+.env*
