@@ -27,13 +27,12 @@ import { createTenant } from "./modules/tenant/createTenant";
 const port = Number(process.env.PORT || 3001);
 
 function allowedOrigins(): string[] {
-  // env optional
   const env = (process.env.CORS_ORIGINS || "")
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
 
-  // hard defaults
+  // ✅ hard defaults
   const defaults = ["https://app.nagool.com", "http://localhost:3000"];
 
   return Array.from(new Set([...env, ...defaults]));
@@ -42,12 +41,17 @@ function allowedOrigins(): string[] {
 async function main() {
   const app = Fastify({ logger: true });
 
-  // ✅ Register CORS before routes (NO top-level await)
+  /**
+   * ✅ CORS MUST be before routes
+   * ⚠️ Do NOT add app.options("/*") because @fastify/cors already registers OPTIONS.
+   */
   await app.register(cors, {
     origin: (origin, cb) => {
+      // allow server-to-server / curl (no origin)
       if (!origin) return cb(null, true);
+
       const ok = allowedOrigins().includes(origin);
-      return ok ? cb(null, true) : cb(new Error("CORS"), false);
+      return ok ? cb(null, true) : cb(new Error("CORS_NOT_ALLOWED"), false);
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -55,14 +59,15 @@ async function main() {
     optionsSuccessStatus: 204,
   });
 
-  // ✅ Guarantee preflight never 404s
-  app.options("/*", async (_req, reply) => reply.code(204).send());
-
   app.get("/health", async () => ({ ok: true, service: "nagool-api" }));
 
+  // ✅ Phase 2: session stored under tenants/{tenantId}/sessions
   app.post("/v1/session/start", startSessionHandler);
+
+  // ✅ Phase 1: tenant create
   app.post("/v1/tenant/create", createTenant);
 
+  // Widget routes
   app.register(widgetBootstrapRoutes);
   app.register(widgetBootstrapRoutesV2);
   app.register(widgetStaticRoutes);
@@ -72,6 +77,7 @@ async function main() {
   app.register(widgetTestPageRoutes);
   app.register(widgetEmbedRoutes);
 
+  // v1 routes
   app.register(authRoutes, { prefix: "/v1" });
   app.register(publicRoutes, { prefix: "/v1" });
   app.register(panelRoutes, { prefix: "/v1" });
