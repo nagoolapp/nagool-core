@@ -5,3 +5,6 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[context.production.environment]
+  API_BASE_URL = "https://api.nagool.com"
