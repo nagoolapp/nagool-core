@@ -18,3 +18,4 @@ apps/serviceAccount.json
 # build artifacts / local scripts
 apps/api/dist/
 fix-*.mjs
+.env.local

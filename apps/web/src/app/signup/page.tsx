@@ -1,61 +1,140 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+
+/**
+ * Expected API response shape
+ */
+type SignupResponse =
+  | { ok: true; token: string; tenantId: string; widgetKey: string }
+  | { ok?: false; error?: string; message?: unknown };
 
 export default function SignupPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const form = new FormData(e.currentTarget);
+    try {
+      const form = new FormData(e.currentTarget);
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/public/signup`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mobile: form.get("mobile"),
-        password: form.get("password"),
-        businessName: form.get("businessName"),
-        industry: form.get("industry"),
-        city: form.get("city"),
-      }),
-    });
+      const payload = {
+        businessName: String(form.get("businessName") ?? "").trim(),
+        industry: String(form.get("industry") ?? "").trim(),
+        city: String(form.get("city") ?? "").trim(),
+        mobile: String(form.get("mobile") ?? "").trim(),
+        password: String(form.get("password") ?? ""),
+      };
 
-    const data = await res.json();
+      // basic client-side validation
+      if (!payload.businessName || !payload.mobile || !payload.password) {
+        setError("Business name, mobile, and password are required.");
+        return;
+      }
 
-    if (!res.ok || !data?.ok) {
-      setError(data?.error || "Signup failed");
+      // IMPORTANT:
+      // Call our own domain (/api/...) so the browser never hits the API cross-origin.
+      // Next.js rewrite will proxy this to the real API_BASE_URL.
+      const res = await fetch(`/api/v1/public/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      let data: SignupResponse;
+      try {
+        data = (await res.json()) as SignupResponse;
+      } catch {
+        setError("Invalid response from server.");
+        return;
+      }
+
+      if (!res.ok || !("ok" in data) || data.ok !== true) {
+        const raw = (data as any)?.error ?? (data as any)?.message;
+        const msg =
+          typeof raw === "string"
+            ? raw
+            : raw
+            ? JSON.stringify(raw)
+            : `Signup failed (HTTP ${res.status})`;
+
+        setError(msg);
+        return;
+      }
+
+      // persist session data
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("tenantId", data.tenantId);
+      localStorage.setItem("widgetKey", data.widgetKey);
+
+      router.push("/welcome");
+    } catch (err: unknown) {
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? `Network error: ${err.message}`
+          : "Network error. Please try again."
+      );
+    } finally {
       setLoading(false);
-      return;
     }
-
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("tenantId", data.tenantId);
-    localStorage.setItem("widgetKey", data.widgetKey);
-
-    router.push("/welcome");
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
-      <form onSubmit={submit} className="w-full max-w-md border p-6 rounded-lg space-y-4 bg-white">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-md border p-6 rounded-lg space-y-4 bg-white"
+      >
         <h2 className="text-2xl font-bold">Create your workspace</h2>
 
-        <input name="businessName" placeholder="Business name" required className="w-full border p-2 rounded" />
-        <input name="industry" placeholder="Industry" className="w-full border p-2 rounded" />
-        <input name="city" placeholder="City" className="w-full border p-2 rounded" />
-        <input name="mobile" placeholder="Mobile" required className="w-full border p-2 rounded" />
-        <input name="password" type="password" placeholder="Password" required className="w-full border p-2 rounded" />
+        <input
+          name="businessName"
+          placeholder="Business name"
+          required
+          className="w-full border p-2 rounded"
+        />
 
-        {error && <p className="text-red-600">{error}</p>}
+        <input
+          name="industry"
+          placeholder="Industry"
+          className="w-full border p-2 rounded"
+        />
 
-        <button disabled={loading} className="w-full bg-black text-white py-2 rounded">
+        <input
+          name="city"
+          placeholder="City"
+          className="w-full border p-2 rounded"
+        />
+
+        <input
+          name="mobile"
+          type="tel"
+          placeholder="Mobile"
+          required
+          className="w-full border p-2 rounded"
+        />
+
+        <input
+          name="password"
+          type="password"
+          placeholder="Password"
+          required
+          className="w-full border p-2 rounded"
+        />
+
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-black text-white py-2 rounded disabled:opacity-60"
+        >
           {loading ? "Creating..." : "Start Free Trial"}
         </button>
       </form>
