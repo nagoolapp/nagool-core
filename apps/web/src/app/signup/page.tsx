@@ -3,17 +3,14 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-/**
- * Expected API response shape
- */
 type SignupResponse =
   | { ok: true; token: string; tenantId: string; widgetKey: string }
   | { ok?: false; error?: string; message?: unknown };
 
 export default function SignupPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,15 +28,12 @@ export default function SignupPage() {
         password: String(form.get("password") ?? ""),
       };
 
-      // basic client-side validation
       if (!payload.businessName || !payload.mobile || !payload.password) {
         setError("Business name, mobile, and password are required.");
         return;
       }
 
-      // IMPORTANT:
-      // Call our own domain (/api/...) so the browser never hits the API cross-origin.
-      // This hits Next route handler at /src/app/api/... which proxies to API_BASE_URL.
+      // SAME ORIGIN: nagool.com/api/...  (No CORS)
       const res = await fetch(`/api/v1/public/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,9 +46,7 @@ export default function SignupPage() {
       try {
         data = text ? (JSON.parse(text) as SignupResponse) : {};
       } catch {
-        setError(
-          `Server returned non-JSON (HTTP ${res.status}). Check API proxy / deployment.`
-        );
+        setError(`Non-JSON response (HTTP ${res.status}).`);
         return;
       }
 
@@ -66,24 +58,17 @@ export default function SignupPage() {
             : raw
             ? JSON.stringify(raw)
             : `Signup failed (HTTP ${res.status})`;
-
         setError(msg);
         return;
       }
 
-      // persist session data
       localStorage.setItem("token", data.token);
       localStorage.setItem("tenantId", data.tenantId);
       localStorage.setItem("widgetKey", data.widgetKey);
 
       router.push("/welcome");
     } catch (err: unknown) {
-      console.error(err);
-      setError(
-        err instanceof Error
-          ? `Network error: ${err.message}`
-          : "Network error. Please try again."
-      );
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -97,36 +82,11 @@ export default function SignupPage() {
       >
         <h2 className="text-2xl font-bold">Create your workspace</h2>
 
-        <input
-          name="businessName"
-          placeholder="Business name"
-          required
-          className="w-full border p-2 rounded"
-        />
-
-        <input
-          name="industry"
-          placeholder="Industry"
-          className="w-full border p-2 rounded"
-        />
-
+        <input name="businessName" placeholder="Business name" required className="w-full border p-2 rounded" />
+        <input name="industry" placeholder="Industry" className="w-full border p-2 rounded" />
         <input name="city" placeholder="City" className="w-full border p-2 rounded" />
-
-        <input
-          name="mobile"
-          type="tel"
-          placeholder="Mobile"
-          required
-          className="w-full border p-2 rounded"
-        />
-
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          required
-          className="w-full border p-2 rounded"
-        />
+        <input name="mobile" type="tel" placeholder="Mobile" required className="w-full border p-2 rounded" />
+        <input name="password" type="password" placeholder="Password" required className="w-full border p-2 rounded" />
 
         {error && <p className="text-red-600 text-sm">{error}</p>}
 

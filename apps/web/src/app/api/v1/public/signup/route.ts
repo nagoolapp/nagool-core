@@ -5,10 +5,9 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const apiBase = process.env.API_BASE_URL;
-
     if (!apiBase) {
       return NextResponse.json(
-        { ok: false, error: "Missing API_BASE_URL env var on server." },
+        { ok: false, error: "Missing API_BASE_URL (Netlify env) on server." },
         { status: 500 }
       );
     }
@@ -27,7 +26,6 @@ export async function POST(req: Request) {
 
     const text = await upstream.text();
 
-    // Always return JSON to the client (even if upstream sends HTML)
     try {
       const data = text ? JSON.parse(text) : null;
       return NextResponse.json(data, { status: upstream.status });
@@ -36,7 +34,7 @@ export async function POST(req: Request) {
         {
           ok: false,
           error: "Upstream did not return JSON.",
-          status: upstream.status,
+          upstreamStatus: upstream.status,
           raw: text?.slice(0, 300),
         },
         { status: 502 }
