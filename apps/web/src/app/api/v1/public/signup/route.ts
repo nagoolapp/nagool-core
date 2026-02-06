@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const apiBase = process.env.API_BASE_URL;
+
     if (!apiBase) {
       return NextResponse.json(
         { ok: false, error: "Missing API_BASE_URL env var on server." },
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
 
     const text = await upstream.text();
 
-    // Always return JSON to the client
+    // Always return JSON to the client (even if upstream sends HTML)
     try {
       const data = text ? JSON.parse(text) : null;
       return NextResponse.json(data, { status: upstream.status });

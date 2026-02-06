@@ -39,18 +39,22 @@ export default function SignupPage() {
 
       // IMPORTANT:
       // Call our own domain (/api/...) so the browser never hits the API cross-origin.
-      // Next.js rewrite will proxy this to the real API_BASE_URL.
+      // This hits Next route handler at /src/app/api/... which proxies to API_BASE_URL.
       const res = await fetch(`/api/v1/public/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
+      const text = await res.text();
+
       let data: SignupResponse;
       try {
-        data = (await res.json()) as SignupResponse;
+        data = text ? (JSON.parse(text) as SignupResponse) : {};
       } catch {
-        setError("Invalid response from server.");
+        setError(
+          `Server returned non-JSON (HTTP ${res.status}). Check API proxy / deployment.`
+        );
         return;
       }
 
@@ -106,11 +110,7 @@ export default function SignupPage() {
           className="w-full border p-2 rounded"
         />
 
-        <input
-          name="city"
-          placeholder="City"
-          className="w-full border p-2 rounded"
-        />
+        <input name="city" placeholder="City" className="w-full border p-2 rounded" />
 
         <input
           name="mobile"
